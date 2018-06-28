@@ -1,0 +1,57 @@
+#! /usr/bin/env python
+
+import os
+import click
+import bsd
+import libzfs
+
+
+def get_root_pool_name():
+    rootfs = bsd.statfs('/').source
+    return rootfs[:rootfs.find('/')]
+
+def get_root_pool():
+    pool_name = get_root_pool_name()
+    return libzfs.ZFS().get(pool_name)
+
+def get_bootfs_name(pool):
+    return pool.properties['bootfs'].value
+
+
+@click.group()
+def zcp():
+    if os.geteuid() is not 0:
+        click.echo("must be root")
+        exit(1)
+
+
+@zcp.command('be-list')
+def be_list():
+    pool_name = get_root_pool_name()
+    pool = libzfs.ZFS().get(pool_name)
+    bootfs = get_bootfs_name(pool)
+    beds = bootfs[:bootfs.rfind('/')]
+    program = """
+    args = ...
+    POOL = args['POOL']
+    BEDS = args['BEDS']
+
+    zfs.debug('listing boot environments for pool: ' .. POOL)
+
+    res = {}
+    for fs in zfs.list.children(BEDS) do
+        res[#res+1] = fs
+    end
+
+    zfs.debug('found ' .. tostring(#res) .. ' boot environments')
+
+    return res
+    """
+    args = dict(POOL=pool_name, BEDS=beds)
+    res = pool.channel_program(program, nosync=True, **args)
+    for be in res['return'].values():
+        click.echo(be)
+
+
+if __name__ == "__main__":
+    zcp()

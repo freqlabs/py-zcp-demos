@@ -32,10 +32,7 @@ def be_list():
     beds = bootfs[:bootfs.rfind('/')]
     program = """
     args = ...
-    POOL = args['POOL']
     BEDS = args['BEDS']
-
-    zfs.debug('listing boot environments for pool: ' .. POOL)
 
     res = {}
     for fs in zfs.list.children(BEDS) do
@@ -46,7 +43,7 @@ def be_list():
 
     return res
     """
-    args = dict(POOL=pool_name, BEDS=beds)
+    args = dict(BEDS=beds)
     res = pool.channel_program(program, nosync=True, **args)
     for be in res['return'].values():
         click.echo(be)

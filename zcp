@@ -27,8 +27,7 @@ def zcp():
 
 @zcp.command('be-list')
 def be_list():
-    pool_name = get_root_pool_name()
-    pool = libzfs.ZFS().get(pool_name)
+    pool = get_root_pool()
     bootfs = get_bootfs_name(pool)
     beds = bootfs[:bootfs.rfind('/')]
     program = """
